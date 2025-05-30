@@ -1,5 +1,7 @@
 #include"Camera.h"
 
+
+
 Camera::Camera(int width, int height, glm::vec3 position)
 {
 	Camera::width = width;
@@ -7,7 +9,7 @@ Camera::Camera(int width, int height, glm::vec3 position)
 	Position = position;
 }
 
-void Camera::Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shader, const char* uniform)
+void Camera::updateMatrix(float FOVdeg, float nearPlane, float farPlane)
 {
 	// Initializes matrices since otherwise they will be the null matrix
 	glm::mat4 view = glm::mat4(1.0f);
@@ -18,9 +20,17 @@ void Camera::Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shade
 	// Adds perspective to the scene
 	projection = glm::perspective(glm::radians(FOVdeg), (float)width / height, nearPlane, farPlane);
 
-	// Exports the camera matrix to the Vertex Shader
-	glUniformMatrix4fv(glGetUniformLocation(shader.ID, uniform), 1, GL_FALSE, glm::value_ptr(projection * view));
+	// Sets new camera matrix
+	cameraMatrix = projection * view;
 }
+
+void Camera::Matrix(Shader& shader, const char* uniform)
+{
+	// Exports camera matrix
+	glUniformMatrix4fv(glGetUniformLocation(shader.ID, uniform), 1, GL_FALSE, glm::value_ptr(cameraMatrix));
+}
+
+
 
 void Camera::Inputs(GLFWwindow* window)
 {
@@ -51,11 +61,11 @@ void Camera::Inputs(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 	{
-		speed = 0.1f;
+		speed = 0.4f;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
 	{
-		speed = 0.01f;
+		speed = 0.1f;
 	}
 
 
