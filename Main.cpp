@@ -13,45 +13,12 @@
 #include "VBO.h"
 #include "EBO.h"
 #include "Camera.h"
+#include "Skybox.h"
 
 namespace fs = std::filesystem;
 
 const unsigned int width = 800;
 const unsigned int height = 800;
-
-//GLfloat vertices[] =
-//{//	X		Y		Z			R		G		B			Tex0	Tex1
-//	-0.5f,	-0.5f,	-0.5f,		1.0f,	0.0f,	0.0f,		0.0f,	0.0f, // Lower left back
-//	0.5f,	-0.5f,	-0.5f,		0.0f,	1.0f,	0.0f,		1.0f,	0.0f,  // Lower right back
-//	0.5f,	0.5f,	-0.5f,		0.0f,	0.0f,	1.0f,		0.0f,	1.0f,  // Upper right back
-//	-0.5f,  0.5f,	-0.5f,		1.0f,	1.0f,	0.0f,		1.0f,	1.0f, // Upper left back
-//	-0.5f,	-0.5f,  0.5f,		0.0f,	1.0f,	1.0f,		0.0f,	0.0f, // Lower left front
-//	0.5f,	-0.5f,  0.5f,		1.0f,	0.0f,	1.0f,		1.0f,	0.0f,  // Lower right front
-//	0.5f,	0.5f,	0.5f,		1.0f,	1.0f,	1.0f,		0.0f,	1.0f,  // Upper right front
-//	- 0.5f,  0.5f,	0.5f,		0.5f,	0.5f,	0.5f,		1.0f,	1.0f // Upper left front
-//};
-//
-//GLuint indices[] =
-//{
-//	// Back face
-//	0, 1, 2,
-//	2, 3, 0,
-//	// Front face
-//	4, 5, 6,
-//	6, 7, 4,
-//	// Left face
-//	0, 3, 7,
-//	7, 4, 0,
-//	// Right face
-//	1, 5, 6,
-//	6, 2, 1,
-//	// Top face
-//	3, 2, 6,
-//	6, 7, 3,
-//	// Bottom face
-//	0, 1, 5,
-//	5, 4, 0
-//};
 
 GLfloat vertices[] = {
 	// Wierzcho³ki          /  Kolory     /  TexCoord (u, v) //
@@ -170,6 +137,18 @@ int main()
 	double prevTime = glfwGetTime();
 	float rotation = 1.0f;
 
+	//skybox
+	std::vector<std::string> skyboxFaces = {
+	"textures/skybox/right.png",
+	"textures/skybox/left.png",
+	"textures/skybox/top.png",
+	"textures/skybox/bottom.png",
+	"textures/skybox/front.png",
+	"textures/skybox/back.png"
+	};
+
+	Skybox skybox(skyboxFaces);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
@@ -203,6 +182,8 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model3));
 		glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
 
+		skybox.Draw(camera, width, height);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -215,6 +196,7 @@ int main()
 	texWood.Delete();
 	texDirt.Delete();
 	shaderProgram.Delete();
+	skybox.Delete();
 	// Delete window before ending the program
 	glfwDestroyWindow(window);
 	// Terminate GLFW before ending the program
