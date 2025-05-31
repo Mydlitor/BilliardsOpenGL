@@ -140,6 +140,7 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="shaderClass.cpp" />
+    <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="stb.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="VAO.cpp" />
@@ -154,6 +155,7 @@
     <ClInclude Include="dependencies\include\stb\stb_image.h" />
     <ClInclude Include="EBO.h" />
     <ClInclude Include="shaderClass.h" />
+    <ClInclude Include="Skybox.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="VAO.h" />
     <ClInclude Include="VBO.h" />
@@ -164,9 +166,23 @@
   <ItemGroup>
     <None Include="default.frag" />
     <None Include="default.vert" />
+    <None Include="skybox.frag" />
+    <None Include="skybox.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\brickTex.png" />
+    <Image Include="textures\skybox\back.bmp" />
+    <Image Include="textures\skybox\back.png" />
+    <Image Include="textures\skybox\bottom.bmp" />
+    <Image Include="textures\skybox\bottom.png" />
+    <Image Include="textures\skybox\front.bmp" />
+    <Image Include="textures\skybox\front.png" />
+    <Image Include="textures\skybox\left.bmp" />
+    <Image Include="textures\skybox\left.png" />
+    <Image Include="textures\skybox\right.bmp" />
+    <Image Include="textures\skybox\right.png" />
+    <Image Include="textures\skybox\top.bmp" />
+    <Image Include="textures\skybox\top.png" />
     <Image Include="textures\woodTex.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

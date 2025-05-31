@@ -42,6 +42,9 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="Skybox.cpp">
+      <Filter>Pliki źródłowe</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\GLFW\glfw3.h">
@@ -77,6 +80,9 @@
     <ClInclude Include="Texture.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="dependencies\lib\glfw3.lib" />
@@ -84,12 +90,50 @@
   <ItemGroup>
     <None Include="default.frag" />
     <None Include="default.vert" />
+    <None Include="skybox.vert" />
+    <None Include="skybox.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\woodTex.png">
       <Filter>Pliki zasobów</Filter>
     </Image>
     <Image Include="textures\brickTex.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\back.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\bottom.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\front.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\left.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\right.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\top.bmp">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\back.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\bottom.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\front.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\left.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\right.png">
+      <Filter>Pliki zasobów</Filter>
+    </Image>
+    <Image Include="textures\skybox\top.png">
       <Filter>Pliki zasobów</Filter>
     </Image>
   </ItemGroup>
