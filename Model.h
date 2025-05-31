@@ -4,7 +4,7 @@
 #include<json/json.h>
 #include"Mesh.h"
 
-using json = nlohmann::json;
+using json = nlohmann::json; 
 
 
 class Model

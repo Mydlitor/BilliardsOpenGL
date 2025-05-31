@@ -153,9 +153,15 @@ int main()
 	//	std::cout << "Framebuffer error: " << fboStatus << std::endl;
 
 
+	float lastFrame = 0.0f;
+
 	// Main while loop
 	while (!glfwWindowShouldClose(window))
 	{
+		float currentFrame = glfwGetTime();
+		float deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		// Updates counter and times
 		crntTime = glfwGetTime();
 		timeDiff = crntTime - prevTime;
@@ -188,7 +194,7 @@ int main()
 		//glEnable(GL_DEPTH_TEST);
 
 		// Handles camera inputs (delete this if you have disabled VSync)
-		camera.Inputs(window);
+		camera.Inputs(window, deltaTime);
 		// Updates and exports the camera matrix to the Vertex Shader
 		camera.updateMatrix(45.0f, 0.1f, 100.0f);
 
