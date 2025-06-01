@@ -30,6 +30,15 @@ public:
 	float speed = 0.1f;
 	float sensitivity = 100.0f;
 
+	// Camera clamping boundaries
+	glm::vec3 minBounds = glm::vec3(-10.0f, 0.5f, -10.0f);  // Minimum XYZ boundaries
+	glm::vec3 maxBounds = glm::vec3(10.0f, 8.0f, 10.0f);    // Maximum XYZ boundaries
+
+	// Billiards table collision parameters
+	glm::vec3 tableCenter = glm::vec3(0.0f, 0.0f, 0.0f);    // Center of billiards table
+	float tableRadius = 3.0f;                                // Minimum distance from table center
+	float tableHeight = 1.0f;                               // Height of the table surface
+
 	// Camera constructor to set up initial values
 	Camera(int width, int height, glm::vec3 position);
 
@@ -37,5 +46,10 @@ public:
 	void Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shader, const char* uniform);
 	// Handles camera inputs
 	void Inputs(GLFWwindow* window);
+
+	// Camera clamping functions
+	void ClampPosition();
+	void SetBounds(glm::vec3 minBounds, glm::vec3 maxBounds);
+	void SetTableCollision(glm::vec3 center, float radius, float height);
 };
 #endif

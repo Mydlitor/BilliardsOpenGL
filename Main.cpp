@@ -18,11 +18,17 @@
 
 namespace fs = std::filesystem;
 
-const unsigned int width = 800;
-const unsigned int height = 800;
+const unsigned int width = 1920;
+const unsigned int height = 1080;
 
 const int ANIMATION_KEY = GLFW_KEY_H;
 const int FILTER_KEY = GLFW_KEY_F;
+const int EXIT_KEY = GLFW_KEY_ESCAPE;
+
+const glm::vec3 CAMERA_START_POSITION(0.0f, 2.0f, 5.0f);	// Starting position of the camera
+const glm::vec3 MIN_BOUNDS(-3.0f, 2.5f, -3.0f);			// Minimum XYZ boundaries
+const glm::vec3 MAX_BOUNDS(3.0f, 3.0f, 3.0f);				// Maximum XYZ boundaries
+const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 
 bool grayscaleFilter = false;
 
@@ -74,11 +80,15 @@ GLuint indices[] = {
 	20, 21, 22, 22, 23, 20	// Prawa
 };
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (key == FILTER_KEY && action == GLFW_PRESS)
 	{
 		grayscaleFilter = !grayscaleFilter;
+	}
+	if (key == EXIT_KEY && action == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	}
 }
 
@@ -92,7 +102,8 @@ int main()
 
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(width, height, "JakubSputoOpenGL", NULL, NULL);
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    GLFWwindow* window = glfwCreateWindow(width, height, "JakubSputoOpenGL", monitor, NULL);
 
     if (window == NULL)
     {
@@ -115,7 +126,12 @@ int main()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    Camera camera(width, height, glm::vec3(0.0f, 0.0f, 3.0f));
+	//camera
+    Camera camera(width, height, CAMERA_START_POSITION);
+
+	camera.SetBounds(MIN_BOUNDS, MAX_BOUNDS);
+
+	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f),DIST_FROM_TABLE, 1.0f); 
 
     // Wczytanie modelu
     std::string parentDir = fs::current_path().string();
