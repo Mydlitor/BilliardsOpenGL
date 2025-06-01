@@ -130,8 +130,7 @@ int main()
     Camera camera(width, height, CAMERA_START_POSITION);
 
 	camera.SetBounds(MIN_BOUNDS, MAX_BOUNDS);
-
-	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f),DIST_FROM_TABLE, 1.0f); 
+	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f), DIST_FROM_TABLE, 1.0f); 
 
     // Wczytanie modelu
     std::string parentDir = fs::current_path().string();
@@ -139,9 +138,14 @@ int main()
     Model bilardModel(modelPath);
 
     bool playAnimation = false;
+    bool tKeyPressed = false;
 
-
+    // 60 FPS limiting
     double prevTime = glfwGetTime();
+    double lastFrameTime = glfwGetTime();
+    const double targetFPS = 60.0;
+    const double targetFrameTime = 1.0 / targetFPS;
+    
     float rotation = 1.0f;
 
 	//skybox
@@ -155,9 +159,20 @@ int main()
 	};
 
 	Skybox skybox(skyboxFaces);
-
 	while (!glfwWindowShouldClose(window))
 	{
+        // 60 FPS frame rate limiting
+        double currentFrameTime = glfwGetTime();
+        double frameTimeDelta = currentFrameTime - lastFrameTime;
+        
+        if (frameTimeDelta < targetFrameTime) {
+            // Sleep for the remaining time to maintain 60 FPS
+            double sleepTime = targetFrameTime - frameTimeDelta;
+            glfwWaitEventsTimeout(sleepTime);
+            currentFrameTime = glfwGetTime();
+        }
+        lastFrameTime = currentFrameTime;
+        
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -166,15 +181,26 @@ int main()
 
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - prevTime);
-        prevTime = currentTime;
-
-        camera.Inputs(window, deltaTime);
+        prevTime = currentTime;        camera.Inputs(window, deltaTime);
         camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
 
 		//turn on/off grayscale filter for both shaders
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
 		shaderProgram.SetGrayscale(grayscaleFilter);
 
+        // T key for one-shot animation
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS && !tKeyPressed) {
+            std::cout << "[ANIMATION DEBUG] T key pressed - triggering one-shot animation" << std::endl;
+            std::cout << "[ANIMATION DEBUG] Previous state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
+            bilardModel.TriggerOneShotAnimation();
+            std::cout << "[ANIMATION DEBUG] New state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
+            tKeyPressed = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE) {
+            tKeyPressed = false;
+        }
+
+        // H key for continuous animation
         if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS)
         {
             playAnimation = true;
@@ -184,6 +210,14 @@ int main()
             playAnimation = false;
         }
 
+        static double lastDebugTime = 0.0;
+        if (currentTime - lastDebugTime >= 1.0) {
+            std::cout << "[ANIMATION DEBUG] Status check - Playing: " << bilardModel.IsAnimationPlaying() 
+                      << ", FPS: " << (int)(1.0 / deltaTime) << std::endl;
+            lastDebugTime = currentTime;
+        }
+
+        // Update animation based on playAnimation state or one-shot animation
         if (playAnimation)
             bilardModel.UpdateAnimation(deltaTime);
         else

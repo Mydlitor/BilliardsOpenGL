@@ -4,16 +4,13 @@
 Texture::Texture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType)
 {
 	type = texType;
-	int widthImg, heightImg, numColCh;
-	stbi_set_flip_vertically_on_load(true);
+	int widthImg, heightImg, numColCh;	stbi_set_flip_vertically_on_load(true);
 	unsigned char* bytes = stbi_load(image, &widthImg, &heightImg, &numColCh, 4);
-
-	// DIAGNOSTYKA: sprawdŸ czy plik siê wczyta³
 	if (!bytes) {
-		std::cerr << "[Texture DIAG] Nie uda³o siê za³adowaæ tekstury: " << image << std::endl;
+		std::cerr << "[Texture DIAG] Failed to load texture: " << image << std::endl;
 	} else {
-		std::cout << "[Texture DIAG] Za³adowano teksturê: " << image
-				  << " (" << widthImg << "x" << heightImg << ", kana³y: " << numColCh << ")" << std::endl;
+		std::cout << "[Texture DIAG] Loaded texture: " << image
+				  << " (" << widthImg << "x" << heightImg << ", channels: " << numColCh << ")" << std::endl;
 	}
 
 	glGenTextures(1, &ID);
@@ -24,22 +21,18 @@ Texture::Texture(const char* image, GLenum texType, GLenum slot, GLenum format, 
 
 	glTexParameteri(texType, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(texType, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
 	glTexImage2D(texType, 0, GL_RGBA, widthImg, heightImg, 0, format, pixelType, bytes);
 
-	// DIAGNOSTYKA: sprawdŸ b³êdy OpenGL po za³adowaniu tekstury
 	GLenum err = glGetError();
 	if (err != GL_NO_ERROR) {
-		std::cerr << "[Texture DIAG] B³¹d OpenGL po glTexImage2D: 0x" << std::hex << err << std::endl;
+		std::cerr << "[Texture DIAG] OpenGL error after glTexImage2D: 0x" << std::hex << err << std::endl;
 	}
 
-	glGenerateMipmap(texType);
-	stbi_image_free(bytes);
+	glGenerateMipmap(texType);	stbi_image_free(bytes);
 	glBindTexture(texType, 0);
 
-	// DIAGNOSTYKA: sprawdŸ czy ID tekstury jest poprawny
 	if (ID == 0) {
-		std::cerr << "[Texture DIAG] Nieprawid³owy ID tekstury!" << std::endl;
+		std::cerr << "[Texture DIAG] Invalid texture ID!" << std::endl;
 	}
 }
 
@@ -49,12 +42,11 @@ Texture::Texture(const unsigned char* data, int dataSize, GLenum texType, GLenum
 	int widthImg, heightImg, numColCh;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* bytes = stbi_load_from_memory(data, dataSize, &widthImg, &heightImg, &numColCh, 0);
-
-	std::cout << "[Texture DIAG] Rozmiar bufora: " << dataSize << std::endl;
+	std::cout << "[Texture DIAG] Buffer size: " << dataSize << std::endl;
 	if (!bytes) {
-		std::cerr << "[Texture DIAG] Nie uda³o siê za³adowaæ tekstury z pamiêci!" << std::endl;
+		std::cerr << "[Texture DIAG] Failed to load texture from memory!" << std::endl;
 	} else {
-		std::cout << "[Texture DIAG] Za³adowano teksturê z pamiêci (" << widthImg << "x" << heightImg << ", kana³y: " << numColCh << ")" << std::endl;
+		std::cout << "[Texture DIAG] Loaded texture from memory (" << widthImg << "x" << heightImg << ", channels: " << numColCh << ")" << std::endl;
 	}
 
 	glGenTextures(1, &ID);
@@ -80,10 +72,9 @@ void Texture::texUnit(Shader& shader, const char* uniform, GLuint unit)
 }
 void Texture::Bind()
 {
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(type, ID);
+	glActiveTexture(GL_TEXTURE0);	glBindTexture(type, ID);
 	if (ID == 0) {
-		std::cerr << "[Texture DIAG] Próba bindowania nieprawid³owej tekstury!" << std::endl;
+		std::cerr << "[Texture DIAG] Trying to bind invalid texture!" << std::endl;
 	}
 }
 void Texture::Unbind()

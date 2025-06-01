@@ -43,6 +43,7 @@ struct Node {
     std::string name;
     glm::mat4 localTransform = glm::mat4(1.0f);
     glm::mat4 globalTransform = glm::mat4(1.0f);
+    glm::mat4 originalTransform = glm::mat4(1.0f); // Oryginalna transformacja z modelu
     int parent = -1;
     std::vector<int> children;
     int meshIndex = -1;
@@ -51,23 +52,19 @@ struct Node {
 class Model {
 public:
     Model(const std::string& path);
-    ~Model();
-
-    void Draw(Shader& shader);
+    ~Model();    void Draw(Shader& shader);
     void UpdateAnimation(float time);
-    void SetAnimation(int animIndex);
-    void TriggerOneShotAnimation(); // Nowa metoda do uruchomienia animacji jednorazowej
-    bool IsAnimationPlaying() const; // Sprawdza czy animacja jest aktywna
+    void TriggerOneShotAnimation();
+    bool IsAnimationPlaying() const;
 
 private:
     std::string path;
     std::vector<Mesh> meshes;
-    std::vector<Node> nodes;
-    std::vector<Animation> animations;
-    int currentAnimation;
+    std::vector<Node> nodes;    std::vector<Animation> animations;
+    std::vector<bool> activeAnimations;
     float animationTime;
-    bool animationPlaying;     // Czy animacja jest aktywna
-    bool oneShotMode;          // Czy animacja jest w trybie jednorazowym
+    bool animationPlaying;
+    bool oneShotMode;
     glm::vec4 baseColor = glm::vec4(1.0f);
     void LoadModel(const std::string& path);
     void ProcessNode(tinygltf::Model& model, int nodeIndex, int parentIndex);

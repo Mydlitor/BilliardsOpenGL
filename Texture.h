@@ -13,11 +13,9 @@ extern "C" {
 #include"shaderClass.h"
 class Texture
 {
-public:
-	GLuint ID = 0;
+public:	GLuint ID = 0;
 	GLenum type = GL_TEXTURE_2D;
 
-	// Domyœlny konstruktor
 	Texture() : ID(0), type(GL_TEXTURE_2D) {}
 
 	Texture(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
