@@ -1,12 +1,12 @@
 #include "Model.h"
 #include <iostream>
 #include <filesystem>
+#include <map>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace fs = std::filesystem;
 
 Model::Model(const std::string& filePath) {
-    currentAnimation = -1;
     animationTime = 0.0f;
     animationPlaying = false;
     oneShotMode = false;
@@ -49,13 +49,12 @@ void Model::LoadModel(const std::string& path) {
     if (!ret) {
         std::cout << "Failed to load GLTF model: " << path << std::endl;
         return;
-    }
-
-    nodes.resize(gltfModel.nodes.size());
+    }    nodes.resize(gltfModel.nodes.size());
     for (int i = 0; i < nodes.size(); i++) {
         nodes[i].meshIndex = -1;
         nodes[i].parent = -1;
         nodes[i].localTransform = glm::mat4(1.0f);
+        nodes[i].originalTransform = glm::mat4(1.0f);
     }
 
     if (gltfModel.scenes.size() > 0) {
@@ -82,9 +81,9 @@ void Model::ProcessNode(tinygltf::Model& model, int nodeIndex, int parentIndex) 
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 matrix[i][j] = static_cast<float>(node.matrix[i * 4 + j]);
-            }
-        }
+            }        }
         nodes[nodeIndex].localTransform = matrix;
+        nodes[nodeIndex].originalTransform = matrix;
     } else {
         glm::mat4 translation = glm::mat4(1.0f);
         glm::mat4 rotation = glm::mat4(1.0f);
@@ -108,8 +107,8 @@ void Model::ProcessNode(tinygltf::Model& model, int nodeIndex, int parentIndex) 
             scale = glm::scale(scale, glm::vec3(
                 node.scale[0], node.scale[1], node.scale[2]));
         }
-        
-        nodes[nodeIndex].localTransform = translation * rotation * scale;
+          nodes[nodeIndex].localTransform = translation * rotation * scale;
+        nodes[nodeIndex].originalTransform = nodes[nodeIndex].localTransform;
     }
     
     if (node.mesh >= 0) {
@@ -248,45 +247,27 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                     indices.push_back(static_cast<unsigned int>(idxData[i]));
                 }
             }
-        }
-          if (primitive.material >= 0) {
+        }        if (primitive.material >= 0) {
             auto& material = model.materials[primitive.material];
             bool hasTexture = false;
-
-            std::cout << "[Model DIAG] Przetwarzam materiał: " << material.name << std::endl;
 
             if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) {
                 int texIndex = material.pbrMetallicRoughness.baseColorTexture.index;
                 int imgIndex = model.textures[texIndex].source;
                 
-                std::cout << "[Model DIAG] Indeks tekstury: " << texIndex << ", indeks obrazu: " << imgIndex << std::endl;
-                
                 if (imgIndex >= 0) {
                     auto& gltfImg = model.images[imgIndex];
                     
-                    std::cout << "[Model DIAG] Obraz - URI: '" << gltfImg.uri << "', rozmiar bufora: " << gltfImg.image.size() << std::endl;
-                    std::cout << "[Model DIAG] Wymiary: " << gltfImg.width << "x" << gltfImg.height << ", komponenty: " << gltfImg.component << std::endl;
-                    
-                    std::string texPath;
-                    if (!gltfImg.uri.empty()) {
-                        // Ładuj z pliku (obecny kod)
+                    std::string texPath;                    if (!gltfImg.uri.empty()) {
                         std::string modelPath = fs::path(path).parent_path().string();
                         texPath = modelPath + "/" + gltfImg.uri;
-                        std::cout << "[Model DIAG] Próba załadowania tekstury z pliku: " << texPath << std::endl;
                         Texture tex(texPath.c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
                         if (tex.ID != 0) {
                             mesh.textures.push_back(tex);
-                            hasTexture = true;
-                            std::cout << "[Model DIAG] Tekstura załadowana z pliku, ID: " << tex.ID << std::endl;
-                        } else {
-                            std::cout << "[Model DIAG] Błąd ładowania tekstury z pliku!" << std::endl;
-                        }                    } else if (!gltfImg.image.empty()) {
-                        // Ładuj z surowych danych (raw RGBA8)
+                            hasTexture = true;                        }                    } else if (!gltfImg.image.empty()) {
                         int width = gltfImg.width;
                         int height = gltfImg.height;
-                        int channels = gltfImg.component; // zwykle 4 (RGBA)
-                        std::cout << "[Model DIAG] Ładowanie tekstury z pamięci: " << width << "x" << height << " kanały: " << channels << std::endl;
-                        std::cout << "[Model DIAG] Rozmiar bufora: " << gltfImg.image.size() << std::endl;
+                        int channels = gltfImg.component;
 
                         GLuint texID;
                         glGenTextures(1, &texID);
@@ -302,23 +283,19 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                         glGenerateMipmap(GL_TEXTURE_2D);
                         glBindTexture(GL_TEXTURE_2D, 0);
 
-                        // Sprawdź błędy OpenGL
                         GLenum err = glGetError();
-                        if (err != GL_NO_ERROR) {
-                            std::cout << "[Model DIAG] Błąd OpenGL podczas ładowania tekstury: " << err << std::endl;
-                        } else {
-                            // Stwórz obiekt Texture tylko z ID (jeśli chcesz zachować spójność interfejsu)
+                        if (err == GL_NO_ERROR) {
                             Texture tex;
                             tex.ID = texID;
                             tex.type = GL_TEXTURE_2D;
                             mesh.textures.push_back(tex);
                             hasTexture = true;
-                            std::cout << "[Model DIAG] Tekstura załadowana z pamięci, ID: " << texID << std::endl;
                         }
                     }
                 }
-            }                if (!hasTexture) {
-                std::cout << "[Model DIAG] Brak tekstury, używam baseColor" << std::endl;
+            }
+            
+            if (!hasTexture) {
                 glm::vec4 baseColor(1.0f);
                 if (!material.pbrMetallicRoughness.baseColorFactor.empty()) {
                     baseColor = glm::vec4(
@@ -327,7 +304,6 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                         material.pbrMetallicRoughness.baseColorFactor[2],
                         material.pbrMetallicRoughness.baseColorFactor[3]
                     );
-                    std::cout << "[Model DIAG] BaseColor: " << baseColor.r << ", " << baseColor.g << ", " << baseColor.b << ", " << baseColor.a << std::endl;
                 }
                 mesh.baseColor = baseColor;
             }
@@ -359,15 +335,22 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
 }
 
 void Model::ProcessAnimations(tinygltf::Model& model) {
+    std::cout << "[ANIMATION DEBUG] ProcessAnimations - found " << model.animations.size() << " animations" << std::endl;
+    
     for (auto& gltfAnimation : model.animations) {
         Animation animation;
         animation.name = gltfAnimation.name;
         animation.duration = 0.0f;
         
+        std::cout << "[ANIMATION DEBUG] Processing animation: " << animation.name << std::endl;
+        
         for (auto& gltfChannel : gltfAnimation.channels) {
             AnimationChannel channel;
             channel.targetNode = gltfChannel.target_node;
             channel.path = gltfChannel.target_path;
+            
+            std::cout << "[ANIMATION DEBUG] Channel - targetNode: " << channel.targetNode 
+                      << ", path: " << channel.path << std::endl;
             
             auto& sampler = gltfAnimation.samplers[gltfChannel.sampler];
             
@@ -415,13 +398,31 @@ void Model::ProcessAnimations(tinygltf::Model& model) {
             }
             
             animation.channels.push_back(channel);
+        }        std::cout << "[ANIMATION DEBUG] Animation duration: " << animation.duration 
+                  << ", channels: " << animation.channels.size() << std::endl;
+        
+        animations.push_back(animation);}
+      if (!animations.empty()) {
+        activeAnimations.resize(animations.size(), false);
+        
+        int validAnimationsCount = 0;
+        for (int i = 0; i < animations.size(); i++) {
+            std::cout << "[ANIMATION DEBUG] Checking animation " << i << " with duration: " << animations[i].duration << std::endl;
+            if (animations[i].duration > 0.0f) {
+                activeAnimations[i] = true;
+                validAnimationsCount++;
+                std::cout << "[ANIMATION DEBUG] Activated animation " << i 
+                          << " ('" << animations[i].name << "') with duration: " << animations[i].duration << std::endl;
+            }
         }
         
-        animations.push_back(animation);
-    }
-    
-    if (!animations.empty()) {
-        currentAnimation = 0;
+        std::cout << "[ANIMATION DEBUG] Total valid animations activated: " << validAnimationsCount << std::endl;
+        
+        if (validAnimationsCount == 0) {
+            std::cout << "[ANIMATION DEBUG] No valid animations with duration > 0 found!" << std::endl;
+        }
+    } else {
+        std::cout << "[ANIMATION DEBUG] No animations found!" << std::endl;
     }
 }
 
@@ -440,19 +441,14 @@ void Model::Draw(Shader& shader) {
                 glGetUniformLocation(shader.ID, "modelMatrix"),
                 1, GL_FALSE,
                 glm::value_ptr(nodes[i].globalTransform)
-            );
-              if (!mesh.textures.empty()) {
-                // Binduj teksturę na GL_TEXTURE0 przed rysowaniem
+            );            if (!mesh.textures.empty()) {
                 glActiveTexture(GL_TEXTURE0);
                 mesh.textures[0].Bind();
-                // Ustaw uniform w shaderze na 0 (GL_TEXTURE0)
                 glUniform1i(glGetUniformLocation(shader.ID, "texture_diffuse1"), 0);
                 glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 1);
-                std::cout << "[Draw DIAG] Używam tekstury ID: " << mesh.textures[0].ID << std::endl;
             } else {
                 glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 0);
                 glUniform4fv(glGetUniformLocation(shader.ID, "baseColor"), 1, glm::value_ptr(mesh.baseColor));
-                std::cout << "[Draw DIAG] Używam baseColor: " << mesh.baseColor.r << ", " << mesh.baseColor.g << ", " << mesh.baseColor.b << std::endl;
             }
             
             mesh.vao.Bind();
@@ -463,9 +459,7 @@ void Model::Draw(Shader& shader) {
                 int vertCount = static_cast<int>(mesh.vbo.GetSize() / (8 * sizeof(float)));
                 glDrawArrays(GL_TRIANGLES, 0, vertCount);
             }
-            
-            mesh.vao.Unbind();
-            // Unbind tekstury po rysowaniu (opcjonalnie)
+              mesh.vao.Unbind();
             if (!mesh.textures.empty()) {
                 mesh.textures[0].Unbind();
             }
@@ -474,63 +468,98 @@ void Model::Draw(Shader& shader) {
 }
 
 void Model::UpdateAnimation(float deltaTime) {
-    if (currentAnimation < 0 || currentAnimation >= animations.size()) {
+    if (animations.empty() || activeAnimations.empty()) {
+        static bool warningShown = false;
+        if (!warningShown) {
+            std::cout << "[ANIMATION DEBUG] No valid animations - animations.size(): " << animations.size() 
+                      << ", activeAnimations.size(): " << activeAnimations.size() << std::endl;
+            warningShown = true;
+        }
         return;
     }
+      if (!animationPlaying) {
+        return;
+    }
+      animationTime += deltaTime;
     
-    if (!animationPlaying) {
-        return; // Animacja nie jest aktywna
+    float maxDuration = 0.0f;
+    for (int i = 0; i < animations.size(); i++) {
+        if (activeAnimations[i] && animations[i].duration > maxDuration) {
+            maxDuration = animations[i].duration;
+        }
     }
     
-    auto& animation = animations[currentAnimation];
-    
-    animationTime += deltaTime;
-    
-    if (oneShotMode) {
-        // W trybie jednorazowym - zatrzymaj animację na końcu
-        if (animationTime >= animation.duration) {
-            animationTime = animation.duration;
-            animationPlaying = false; // Zatrzymaj animację
-            std::cout << "[Animation] Animacja zakończona - czekam na ostatniej klatce" << std::endl;
-        }
+    std::cout << "[ANIMATION DEBUG] UpdateAnimation - time: " << animationTime 
+              << ", maxDuration: " << maxDuration 
+              << ", deltaTime: " << deltaTime 
+              << ", oneShotMode: " << oneShotMode << std::endl;
+      if (oneShotMode) {
+        if (animationTime >= maxDuration) {
+            animationTime = maxDuration;
+            animationPlaying = false;
+            std::cout << "[ANIMATION DEBUG] All animations finished - waiting on last frame" << std::endl;        }
     } else {
-        // W trybie normalnym - zapętlaj animację
-        if (animationTime > animation.duration) {
-            animationTime = fmodf(animationTime, animation.duration);
-        }
-    }
+        if (animationTime > maxDuration) {
+            animationTime = fmodf(animationTime, maxDuration);
+        }    }
     
-    for (auto& channel : animation.channels) {
-        int nodeIndex = channel.targetNode;
-        if (nodeIndex < 0 || nodeIndex >= nodes.size()) {
+    std::map<int, glm::vec3> nodeTranslations;
+    std::map<int, glm::quat> nodeRotations;
+    std::map<int, glm::vec3> nodeScales;
+    
+    for (int animIndex = 0; animIndex < animations.size(); animIndex++) {        if (!activeAnimations[animIndex]) {
             continue;
         }
+          auto& animation = animations[animIndex];
         
-        glm::vec4 value = InterpolateValues(channel.times, channel.values, animationTime);
+        for (auto& channel : animation.channels) {
+            int nodeIndex = channel.targetNode;
+            if (nodeIndex < 0 || nodeIndex >= nodes.size()) {
+                continue;
+            }
+            
+            glm::vec4 value = InterpolateValues(channel.times, channel.values, animationTime);
+            
+            if (channel.path == "translation") {
+                nodeTranslations[nodeIndex] = glm::vec3(value.x, value.y, value.z);            } 
+            else if (channel.path == "rotation") {
+                nodeRotations[nodeIndex] = glm::quat(value.w, value.x, value.y, value.z);
+            } 
+            else if (channel.path == "scale") {
+                nodeScales[nodeIndex] = glm::vec3(value.x, value.y, value.z);
+            }
+        }    }
+    
+    for (int i = 0; i < nodes.size(); i++) {
+        glm::mat4 baseTransform = nodes[i].originalTransform;
         
-        if (channel.path == "translation") {
-            nodes[nodeIndex].localTransform = glm::translate(
-                glm::mat4(1.0f), glm::vec3(value.x, value.y, value.z));
-        } 
-        else if (channel.path == "rotation") {
-            glm::quat rotation = glm::quat(value.w, value.x, value.y, value.z);
-            nodes[nodeIndex].localTransform = glm::mat4_cast(rotation);
-        } 
-        else if (channel.path == "scale") {
-            nodes[nodeIndex].localTransform = glm::scale(
-                glm::mat4(1.0f), glm::vec3(value.x, value.y, value.z));
+        bool hasAnimationData = false;
+        glm::mat4 translation = glm::mat4(1.0f);
+        glm::mat4 rotation = glm::mat4(1.0f);        glm::mat4 scale = glm::mat4(1.0f);
+        
+        if (nodeTranslations.find(i) != nodeTranslations.end()) {
+            translation = glm::translate(glm::mat4(1.0f), nodeTranslations[i]);
+            hasAnimationData = true;
+        }
+        
+        if (nodeRotations.find(i) != nodeRotations.end()) {
+            rotation = glm::mat4_cast(nodeRotations[i]);
+            hasAnimationData = true;
+        }
+        
+        if (nodeScales.find(i) != nodeScales.end()) {
+            scale = glm::scale(glm::mat4(1.0f), nodeScales[i]);
+            hasAnimationData = true;        }
+        
+        if (hasAnimationData) {
+            nodes[i].localTransform = translation * rotation * scale;
+        } else {
+            nodes[i].localTransform = baseTransform;
         }
     }
 }
 
-void Model::SetAnimation(int animIndex) {
-    if (animIndex >= 0 && animIndex < animations.size()) {
-        currentAnimation = animIndex;
-        animationTime = 0.0f;
-    }
-}
-
-glm::vec4 Model::InterpolateValues(const std::vector<float>& times, 
+glm::vec4 Model::InterpolateValues(const std::vector<float>& times,
                                  const std::vector<glm::vec4>& values, 
                                  float currentTime) {
     if (times.size() == 1) {
@@ -555,4 +584,34 @@ void Model::UpdateNodeHierarchy(int nodeIndex, const glm::mat4& parentTransform)
     for (int childIndex : node.children) {
         UpdateNodeHierarchy(childIndex, node.globalTransform);
     }
+}
+
+void Model::TriggerOneShotAnimation() {
+    std::cout << "[ANIMATION DEBUG] TriggerOneShotAnimation called" << std::endl;
+    std::cout << "[ANIMATION DEBUG] animations.size(): " << animations.size() << std::endl;
+    
+    if (!animations.empty() && !activeAnimations.empty()) {        if (!animationPlaying) {
+            animationTime = 0.0f;
+            animationPlaying = true;
+            oneShotMode = true;
+            
+            int activeCount = 0;
+            for (int i = 0; i < activeAnimations.size(); i++) {
+                if (activeAnimations[i]) {
+                    activeCount++;                }
+            }
+            
+            std::cout << "[ANIMATION DEBUG] Starting " << activeCount << " one-shot animations - animationPlaying: " << animationPlaying << std::endl;
+        } else {
+            animationTime = 0.0f;
+            animationPlaying = true;
+            std::cout << "[ANIMATION DEBUG] Resetting all animations to beginning" << std::endl;
+        }
+    } else {
+        std::cout << "[ANIMATION DEBUG] ERROR: No valid animations to trigger!" << std::endl;
+    }
+}
+
+bool Model::IsAnimationPlaying() const {
+    return animationPlaying;
 }
