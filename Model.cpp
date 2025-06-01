@@ -203,6 +203,13 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
             }
         }
         
+        if (mesh.textures.empty()) {
+            // Ustaw wszystkie kolory na czarne
+            for (int i = 0; i < vertCount; i++) {
+                colors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+        }
+        
         for (int i = 0; i < vertCount; i++) {
             vertexData.push_back(positions[i].x);
             vertexData.push_back(positions[i].y);
@@ -260,18 +267,34 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                     
                     std::string texPath;
                     if (!gltfImg.uri.empty()) {
+                        // £aduj z pliku (obecny kod)
                         std::string modelPath = fs::path(path).parent_path().string();
                         texPath = modelPath + "/" + gltfImg.uri;
-                    } else {
-                        texPath = "temp_" + std::to_string(imgIndex) + ".png";
-                        
-                        std::ofstream file(texPath, std::ios::binary);
-                        file.write(reinterpret_cast<const char*>(gltfImg.image.data()), gltfImg.image.size());
-                        file.close();
+                        Texture tex(texPath.c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+                        mesh.textures.push_back(tex);
+                    } else if (!gltfImg.image.empty()) {
+                        // £aduj z surowych danych (raw RGBA8)
+                        int width = gltfImg.width;
+                        int height = gltfImg.height;
+                        int channels = gltfImg.component; // zwykle 4 (RGBA)
+                        GLuint texID;
+                        glGenTextures(1, &texID);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, texID);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, gltfImg.image.data());
+                        glGenerateMipmap(GL_TEXTURE_2D);
+                        glBindTexture(GL_TEXTURE_2D, 0);
+
+                        // Stwórz obiekt Texture tylko z ID (jeœli chcesz zachowaæ spójnoœæ interfejsu)
+                        Texture tex;
+                        tex.ID = texID;
+                        tex.type = GL_TEXTURE_2D;
+                        mesh.textures.push_back(tex);
                     }
-                    
-                    Texture tex(texPath.c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-                    mesh.textures.push_back(tex);
                 }
             }
         }
