@@ -203,13 +203,6 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
             }
         }
         
-        if (mesh.textures.empty()) {
-            // Ustaw wszystkie kolory na czarne
-            for (int i = 0; i < vertCount; i++) {
-                colors[i] = glm::vec3(0.0f, 0.0f, 0.0f);
-            }
-        }
-        
         for (int i = 0; i < vertCount; i++) {
             vertexData.push_back(positions[i].x);
             vertexData.push_back(positions[i].y);

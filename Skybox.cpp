@@ -79,6 +79,9 @@ void Skybox::setupSkybox()
 
 GLuint Skybox::loadCubemap(const std::vector<std::string>& faces)
 {
+    bool previous = false;
+    stbi_set_flip_vertically_on_load(true);
+
     GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
@@ -112,6 +115,9 @@ GLuint Skybox::loadCubemap(const std::vector<std::string>& faces)
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+    // Przywróæ poprzednie ustawienie
+    stbi_set_flip_vertically_on_load(previous);
+    
     return textureID;
 }
 
