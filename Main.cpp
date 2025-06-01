@@ -2,17 +2,18 @@
 #include <filesystem>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stb/stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Texture.h"
+#include "tiny_gltf.h"
+
 #include "shaderClass.h"
 #include "VAO.h"
 #include "VBO.h"
 #include "EBO.h"
 #include "Camera.h"
+#include "Model.h"
 #include "Skybox.h"
 
 namespace fs = std::filesystem;
@@ -70,72 +71,45 @@ GLuint indices[] = {
 
 int main()
 {
-	glfwInit();
+    glfwInit();
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(width, height, "JakubSputoOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(width, height, "JakubSputoOpenGL", NULL, NULL);
 
-	if (window == NULL)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
 
-	glfwMakeContextCurrent(window);
-	gladLoadGL();
-	glViewport(0, 0, width, height);
+    glfwMakeContextCurrent(window);
+    gladLoadGL();
+    glViewport(0, 0, width, height);
 
-	Shader shaderProgram("default.vert", "default.frag");
+    Shader shaderProgram("default.vert", "default.frag");
+    
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
-	//Texture
-	std::string parentDir = fs::current_path().string();
-	std::string texPath = "/textures/";
+    Camera camera(width, height, glm::vec3(0.0f, 0.0f, 3.0f));
 
-	Texture texWood((parentDir + texPath + "woodTex.png").c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-	Texture texDirt((parentDir + texPath + "dirtTex.jpg").c_str(), GL_TEXTURE_2D, GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-	Texture texBrick((parentDir + texPath + "brickTex.png").c_str(), GL_TEXTURE_2D, GL_TEXTURE2, GL_RGBA, GL_UNSIGNED_BYTE);
+    // Wczytanie modelu
+    std::string parentDir = fs::current_path().string();
+    std::string modelPath = parentDir + "/models/bilard.glb";
+    Model bilardModel(modelPath);
 
-	texWood.texUnit(shaderProgram, "tex0", 0);
-	texDirt.texUnit(shaderProgram, "tex0", 1);
-	texBrick.texUnit(shaderProgram, "tex0", 2);
+    bool playAnimation = false;
 
-	VAO VAO1;
-	VAO1.Bind();
-
-	VBO VBO1(vertices, sizeof(vertices));
-
-	EBO EBO1(indices, sizeof(indices));
-
-	VAO1.LinkAttrib(VBO1, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
-	VAO1.LinkAttrib(VBO1, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	VAO1.LinkAttrib(VBO1, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-
-	VAO1.Unbind();
-	VBO1.Unbind();
-	EBO1.Unbind();
-	
-	glEnable(GL_DEPTH_TEST);
-
-	Camera camera(width, height, glm::vec3(0.0f, 0.0f, 3.0f));
-
-	//models
-	//creating models
-	glm::mat4 model1 = glm::mat4(1.0f);
-	glm::mat4 model2 = glm::mat4(1.0f);
-	glm::mat4 model3 = glm::mat4(1.0f);
-
-	//starting positions of models
-	model1 = glm::translate(model1, glm::vec3(-1.5f, 0.0f, 0.0f)); //move -1.5 to the left
-	model2 = glm::translate(model2, glm::vec3(1.5f, 0.0f, 0.0f)); //move 1.5 to the right
-	//model3 = glm::translate(model3, glm::vec3(0.0f, 0.0f, 0.0f)); //stay in the middle
-
-	double prevTime = glfwGetTime();
-	float rotation = 1.0f;
+    double prevTime = glfwGetTime();
+    float rotation = 1.0f;
 
 	//skybox
 	std::vector<std::string> skyboxFaces = {
@@ -154,33 +128,33 @@ int main()
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		shaderProgram.Activate();
+        shaderProgram.Activate();
 
-		camera.Inputs(window);
+        camera.Inputs(window);
+        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
 
-		camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - prevTime);
+        prevTime = currentTime;
 
-		//for animations
-		double currentTime = glfwGetTime();
-		if (currentTime - prevTime >= 1.0 / 60)
-			prevTime = currentTime;
 
-		VAO1.Bind();
+        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+        {
+            playAnimation = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+        {
+            playAnimation = false;
+        }
 
-		texWood.Bind();
-		model1 = glm::rotate(model1, glm::radians(rotation * -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model1));
-		glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
 
-		texDirt.Bind();
-		model2 = glm::rotate(model2, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model2));
-		glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
+        if (playAnimation)
+            bilardModel.UpdateAnimation(deltaTime);
+        else
+            bilardModel.UpdateAnimation(0.0f);
 
-		texBrick.Bind();
-		model3 = glm::rotate(model3, glm::radians(rotation), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model3));
-		glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
+
+        bilardModel.Draw(shaderProgram);
 
 		skybox.Draw(camera, width, height);
 
@@ -188,18 +162,10 @@ int main()
 		glfwPollEvents();
 	}
 
-
-	// Delete all the objects we've created
-	VAO1.Delete();
-	VBO1.Delete();
-	EBO1.Delete();
-	texWood.Delete();
-	texDirt.Delete();
 	shaderProgram.Delete();
 	skybox.Delete();
-	// Delete window before ending the program
+
 	glfwDestroyWindow(window);
-	// Terminate GLFW before ending the program
 	glfwTerminate();
 	return 0;
 }

@@ -1,20 +1,20 @@
-#version 330 core 
+#version 330 core
 
-// Outputs colors in RGBA 
-out vec4 FragColor; 
+in vec3 Normal;
+in vec3 FragPos;
 
+out vec4 FragColor;
 
-// Inputs the color from the Vertex Shader 
-in vec3 color; 
+// Sta³y kolor (np. zielony)
+const vec3 baseColor = vec3(0.2, 0.8, 0.2);
 
-// Inputs the texture coordinates from the Vertex Shader 
-in vec2 texCoord;
+// Proste œwiat³o kierunkowe
+const vec3 lightDir = normalize(vec3(-0.5, -1.0, -0.3));
+const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
-// Gets the Texture Unit from the main function 
-uniform sampler2D tex0;
-
-
-void main() 
+void main()
 {
-	FragColor = texture(tex0, texCoord);
+    float diff = max(dot(normalize(Normal), -lightDir), 0.0);
+    vec3 diffuse = diff * lightColor * baseColor;
+    FragColor = vec4(diffuse, 1.0);
 }
