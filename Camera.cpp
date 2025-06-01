@@ -5,6 +5,7 @@ Camera::Camera(int width, int height, glm::vec3 position)
 	Camera::width = width;
 	Camera::height = height;
 	Position = position;
+	ClampPosition(); // Ensure initial position is within bounds
 }
 
 void Camera::Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shader, const char* uniform)
@@ -24,22 +25,27 @@ void Camera::Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shade
 
 void Camera::Inputs(GLFWwindow* window)
 {
-	// Handles key inputs
+	// Create horizontal-only forward/backward direction (remove Y component)
+	glm::vec3 horizontalForward = glm::normalize(glm::vec3(Orientation.x, 0.0f, Orientation.z));
+	// Create horizontal-only right direction
+	glm::vec3 horizontalRight = glm::normalize(glm::cross(horizontalForward, Up));
+
+	// Handles key inputs with horizontal-only movement
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
-		Position += speed * Orientation;
+		Position += speed * horizontalForward;
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 	{
-		Position += speed * -glm::normalize(glm::cross(Orientation, Up));
+		Position += speed * -horizontalRight;
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		Position += speed * -Orientation;
+		Position += speed * -horizontalForward;
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 	{
-		Position += speed * glm::normalize(glm::cross(Orientation, Up));
+		Position += speed * horizontalRight;
 	}
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
@@ -58,8 +64,9 @@ void Camera::Inputs(GLFWwindow* window)
 		speed = 0.01f;
 	}
 
+	// Clamp position after movement
+	ClampPosition();
 
-	// Handles mouse inputs
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 	{
 		// Hides mouse cursor
@@ -105,4 +112,66 @@ void Camera::Inputs(GLFWwindow* window)
 		// Makes sure the next time the camera looks around it doesn't jump
 		firstClick = true;
 	}
+}
+
+void Camera::ClampPosition()
+{
+	// Clamp to world boundaries
+	Position.x = glm::clamp(Position.x, minBounds.x, maxBounds.x);
+	Position.y = glm::clamp(Position.y, minBounds.y, maxBounds.y);
+	Position.z = glm::clamp(Position.z, minBounds.z, maxBounds.z);
+
+	// Check collision with billiards table (cylindrical collision)
+	glm::vec2 horizontalPos = glm::vec2(Position.x, Position.z);
+	glm::vec2 horizontalTableCenter = glm::vec2(tableCenter.x, tableCenter.z);
+
+	float distanceFromTableCenter = glm::length(horizontalPos - horizontalTableCenter);
+
+	// If camera is too close to table center, handle collision smoothly
+	if (distanceFromTableCenter < tableRadius)
+	{
+		// Calculate direction away from table center
+		glm::vec2 direction = glm::normalize(horizontalPos - horizontalTableCenter);
+
+		// If the camera is exactly at the center, push it in a default direction
+		if (glm::length(direction) < 0.001f)
+		{
+			direction = glm::vec2(1.0f, 0.0f);
+		}
+
+		// Push camera to minimum distance from table
+		glm::vec2 newHorizontalPos = horizontalTableCenter + direction * tableRadius;
+		Position.x = newHorizontalPos.x;
+		Position.z = newHorizontalPos.y;
+
+		// Smooth height adjustment based on distance from table edge
+		float edgeDistance = tableRadius - distanceFromTableCenter;
+		float heightInfluence = glm::clamp(edgeDistance / tableRadius, 0.0f, 1.0f);
+
+		// Calculate minimum height based on how close we are to the table center
+		float minHeightAtThisDistance = tableHeight + 0.5f + (heightInfluence * 1.5f);
+
+		// Only adjust height if we're below the calculated minimum
+		if (Position.y < minHeightAtThisDistance)
+		{
+			// Smoothly interpolate to the required height instead of jumping
+			float heightDifference = minHeightAtThisDistance - Position.y;
+			Position.y += heightDifference * 0.1f; // Gradual adjustment factor
+		}
+	}
+}
+
+void Camera::SetBounds(glm::vec3 newMinBounds, glm::vec3 newMaxBounds)
+{
+	minBounds = newMinBounds;
+	maxBounds = newMaxBounds;
+	ClampPosition(); // Re-clamp with new bounds
+}
+
+void Camera::SetTableCollision(glm::vec3 center, float radius, float height)
+{
+	tableCenter = center;
+	tableRadius = radius;
+	tableHeight = height;
+	ClampPosition(); // Re-clamp with new table parameters
 }

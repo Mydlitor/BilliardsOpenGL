@@ -2,6 +2,8 @@
 #include <stb/stb_image.h>
 #include <iostream>
 
+const float SKYBOX_ROTATION_ANGLE = -90.0f;
+
 float skyboxVertices[] = {
     // positions          
     -1.0f,  1.0f, -1.0f,
@@ -48,11 +50,10 @@ float skyboxVertices[] = {
 };
 
 Skybox::Skybox(const std::vector<std::string>& faces)
+    : textureID(0), VAO(0), VBO(0), skyboxShader(nullptr)
 {
     textureID = loadCubemap(faces);
-
     setupSkybox();
-
     skyboxShader = new Shader("skybox.vert", "skybox.frag");
 }
 
@@ -121,6 +122,11 @@ void Skybox::Draw(Camera& camera, int width, int height)
     skyboxShader->Activate();
 
     glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Orientation, camera.Up)));
+
+    //rotacja, zeby ladniej pasowal ten stol do pokoju (mozna zrotowac model ale po co xDxD)
+    glm::mat4 skyboxRotation = glm::rotate(glm::mat4(1.0f), glm::radians(SKYBOX_ROTATION_ANGLE), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = view * skyboxRotation;
+
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
 
     glUniformMatrix4fv(glGetUniformLocation(skyboxShader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -139,11 +145,26 @@ void Skybox::Draw(Camera& camera, int width, int height)
 
 void Skybox::Delete()
 {
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteTextures(1, &textureID);
-    if (skyboxShader) {
+    // Delete OpenGL resources only if they exist
+    if (VAO != 0) {
+        glDeleteVertexArrays(1, &VAO);
+        VAO = 0;
+    }
+
+    if (VBO != 0) {
+        glDeleteBuffers(1, &VBO);
+        VBO = 0;
+    }
+
+    if (textureID != 0) {
+        glDeleteTextures(1, &textureID);
+        textureID = 0;
+    }
+
+    // Delete shader only if it exists and hasn't been deleted yet
+    if (skyboxShader != nullptr) {
         skyboxShader->Delete();
         delete skyboxShader;
+        skyboxShader = nullptr;
     }
 }
