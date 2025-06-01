@@ -18,5 +18,8 @@ public:
 
 	void Activate();
 	void Delete();
+
+	// Add grayscale functionality
+	void SetGrayscale(bool enable);
 };
 #endif

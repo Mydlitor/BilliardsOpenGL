@@ -21,6 +21,11 @@ namespace fs = std::filesystem;
 const unsigned int width = 800;
 const unsigned int height = 800;
 
+const int ANIMATION_KEY = GLFW_KEY_H;
+const int FILTER_KEY = GLFW_KEY_F;
+
+bool grayscaleFilter = false;
+
 GLfloat vertices[] = {
 	// Wierzcho³ki          /  Kolory     /  TexCoord (u, v) //
 	// Przód
@@ -69,6 +74,15 @@ GLuint indices[] = {
 	20, 21, 22, 22, 23, 20	// Prawa
 };
 
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == FILTER_KEY && action == GLFW_PRESS)
+	{
+		grayscaleFilter = !grayscaleFilter;
+	}
+}
+
+
 int main()
 {
     glfwInit();
@@ -91,6 +105,8 @@ int main()
     gladLoadGL();
     glViewport(0, 0, width, height);
 
+	glfwSetKeyCallback(window, keyCallback);
+
     Shader shaderProgram("default.vert", "default.frag");
     
     glEnable(GL_DEPTH_TEST);
@@ -107,6 +123,7 @@ int main()
     Model bilardModel(modelPath);
 
     bool playAnimation = false;
+
 
     double prevTime = glfwGetTime();
     float rotation = 1.0f;
@@ -137,12 +154,15 @@ int main()
         float deltaTime = static_cast<float>(currentTime - prevTime);
         prevTime = currentTime;
 
+		//turn on/off grayscale filter for both shaders
+		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
+		shaderProgram.SetGrayscale(grayscaleFilter);
 
-        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS)
         {
             playAnimation = true;
         }
-        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_RELEASE)
         {
             playAnimation = false;
         }

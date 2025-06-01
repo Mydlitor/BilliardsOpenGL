@@ -39,7 +39,6 @@ Shader::Shader(const char* vertexFile, const char* fragmentFile)
 
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-
 }
 
 void Shader::Activate()
@@ -50,4 +49,10 @@ void Shader::Activate()
 void Shader::Delete()
 {
 	glDeleteProgram(ID);
+}
+
+void Shader::SetGrayscale(bool enable)
+{
+	Activate();
+	glUniform1i(glGetUniformLocation(ID, "enableGrayscale"), enable ? 1 : 0);
 }
