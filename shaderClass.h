@@ -18,5 +18,10 @@ public:
 
 	void Activate();
 	void Delete();
+
+	void setInt(const std::string& name, int value) const
+	{
+		glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+	}
 };
 #endif

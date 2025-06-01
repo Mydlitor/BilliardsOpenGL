@@ -129,6 +129,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shaderProgram.Activate();
+        shaderProgram.setInt("texture_diffuse1", 0); // 0 = GL_TEXTURE0
 
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - prevTime);
