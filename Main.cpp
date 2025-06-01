@@ -130,13 +130,12 @@ int main()
 
         shaderProgram.Activate();
 
-        camera.Inputs(window);
-        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
-
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - prevTime);
         prevTime = currentTime;
 
+        camera.Inputs(window, deltaTime);
+        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
 
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
         {
@@ -147,12 +146,10 @@ int main()
             playAnimation = false;
         }
 
-
         if (playAnimation)
             bilardModel.UpdateAnimation(deltaTime);
         else
             bilardModel.UpdateAnimation(0.0f);
-
 
         bilardModel.Draw(shaderProgram);
 
