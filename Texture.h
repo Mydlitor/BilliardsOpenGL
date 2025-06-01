@@ -2,7 +2,13 @@
 #ifndef TEXTURE_CLASS_H
 #define TEXTURE_CLASS_H
 #include<glad/glad.h>
-#include<stb/stb_image.h>
+
+extern "C" {
+    unsigned char *stbi_load(char const *filename, int *x, int *y, int *channels_in_file, int desired_channels);
+    void stbi_image_free(void *retval_from_stbi_load);
+    int stbi_set_flip_vertically_on_load(int flag_true_if_should_flip);
+}
+
 #include"shaderClass.h"
 class Texture
 {
