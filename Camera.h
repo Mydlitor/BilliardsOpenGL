@@ -45,7 +45,7 @@ public:
 	// Updates and exports the camera matrix to the Vertex Shader
 	void Matrix(float FOVdeg, float nearPlane, float farPlane, Shader& shader, const char* uniform);
 	// Handles camera inputs
-	void Inputs(GLFWwindow* window);
+	void Inputs(GLFWwindow* window, float deltaTime);
 
 	// Camera clamping functions
 	void ClampPosition();

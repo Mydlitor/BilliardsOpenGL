@@ -33,26 +33,26 @@ const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 bool grayscaleFilter = false;
 
 GLfloat vertices[] = {
-	// Wierzcho³ki          /  Kolory     /  TexCoord (u, v) //
-	// Przód
+	// Wierzchoï¿½ki          /  Kolory     /  TexCoord (u, v) //
+	// Przï¿½d
 	-0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 0
 	 0.5f, -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 1
 	 0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 2
 	-0.5f,  0.5f,  0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 3
 
-	// Ty³
+	// Tyï¿½
 	-0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 4
 	 0.5f, -0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 5
 	 0.5f,  0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 6
 	-0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 7
 
-	// Góra
+	// Gï¿½ra
 	-0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 8
 	 0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 9
 	 0.5f,  0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 10
 	-0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 11
 
-	// Dó³
+	// Dï¿½
 	-0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 12
 	 0.5f, -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 13
 	 0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 14
@@ -72,10 +72,10 @@ GLfloat vertices[] = {
 };
 
 GLuint indices[] = {
-	0, 1, 2, 2, 3, 0,		// Przód
-	4, 5, 6, 6, 7, 4,		// Ty³
-	8, 9, 10, 10, 11, 8,	// Góra
-	12, 13, 14, 14, 15, 12,	// Dó³
+	0, 1, 2, 2, 3, 0,		// Przï¿½d
+	4, 5, 6, 6, 7, 4,		// Tyï¿½
+	8, 9, 10, 10, 11, 8,	// Gï¿½ra
+	12, 13, 14, 14, 15, 12,	// Dï¿½
 	16, 17, 18, 18, 19, 16,	// Lewa
 	20, 21, 22, 22, 23, 20	// Prawa
 };
@@ -130,8 +130,7 @@ int main()
     Camera camera(width, height, CAMERA_START_POSITION);
 
 	camera.SetBounds(MIN_BOUNDS, MAX_BOUNDS);
-
-	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f),DIST_FROM_TABLE, 1.0f); 
+	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f), DIST_FROM_TABLE, 1.0f); 
 
     // Wczytanie modelu
     std::string parentDir = fs::current_path().string();
@@ -139,9 +138,14 @@ int main()
     Model bilardModel(modelPath);
 
     bool playAnimation = false;
+    bool tKeyPressed = false;
 
-
+    // 60 FPS limiting
     double prevTime = glfwGetTime();
+    double lastFrameTime = glfwGetTime();
+    const double targetFPS = 60.0;
+    const double targetFrameTime = 1.0 / targetFPS;
+    
     float rotation = 1.0f;
 
 	//skybox
@@ -155,25 +159,48 @@ int main()
 	};
 
 	Skybox skybox(skyboxFaces);
-
 	while (!glfwWindowShouldClose(window))
 	{
+        // 60 FPS frame rate limiting
+        double currentFrameTime = glfwGetTime();
+        double frameTimeDelta = currentFrameTime - lastFrameTime;
+        
+        if (frameTimeDelta < targetFrameTime) {
+            // Sleep for the remaining time to maintain 60 FPS
+            double sleepTime = targetFrameTime - frameTimeDelta;
+            glfwWaitEventsTimeout(sleepTime);
+            currentFrameTime = glfwGetTime();
+        }
+        lastFrameTime = currentFrameTime;
+        
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shaderProgram.Activate();
-
-        camera.Inputs(window);
-        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
+        shaderProgram.setInt("texture_diffuse1", 0); // 0 = GL_TEXTURE0
 
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - prevTime);
-        prevTime = currentTime;
+        prevTime = currentTime;        camera.Inputs(window, deltaTime);
+        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
 
 		//turn on/off grayscale filter for both shaders
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
 		shaderProgram.SetGrayscale(grayscaleFilter);
 
+        // T key for one-shot animation
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS && !tKeyPressed) {
+            std::cout << "[ANIMATION DEBUG] T key pressed - triggering one-shot animation" << std::endl;
+            std::cout << "[ANIMATION DEBUG] Previous state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
+            bilardModel.TriggerOneShotAnimation();
+            std::cout << "[ANIMATION DEBUG] New state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
+            tKeyPressed = true;
+        }
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE) {
+            tKeyPressed = false;
+        }
+
+        // H key for continuous animation
         if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS)
         {
             playAnimation = true;
@@ -183,12 +210,16 @@ int main()
             playAnimation = false;
         }
 
-
-        if (playAnimation)
+        static double lastDebugTime = 0.0;
+        if (currentTime - lastDebugTime >= 1.0) {
+            std::cout << "[ANIMATION DEBUG] Status check - Playing: " << bilardModel.IsAnimationPlaying() 
+                      << ", FPS: " << (int)(1.0 / deltaTime) << std::endl;
+            lastDebugTime = currentTime;
+        }        // Update animation based on playAnimation state or one-shot animation
+        if (playAnimation || bilardModel.IsAnimationPlaying())
             bilardModel.UpdateAnimation(deltaTime);
         else
             bilardModel.UpdateAnimation(0.0f);
-
 
         bilardModel.Draw(shaderProgram);
 
