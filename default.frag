@@ -8,16 +8,18 @@ out vec4 FragColor;
 
 // Grayscale filter uniform
 uniform bool enableGrayscale;
-uniform sampler2D texture_diffuse1; // Tekstura
+uniform sampler2D texture_diffuse1;
+uniform int hasTexture;
+uniform vec4 baseColor;
 
 const vec3 lightDir = normalize(vec3(-0.5, -1.0, -0.3));
 const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
 void main()
 {
-    vec3 baseColor = texture(texture_diffuse1, TexCoord).rgb;
+    vec3 color = hasTexture == 1 ? texture(texture_diffuse1, TexCoord).rgb : baseColor.rgb;
     float diff = max(dot(normalize(Normal), -lightDir), 0.0);
-    vec3 diffuse = diff * lightColor * baseColor;
+    vec3 diffuse = diff * lightColor * color;
     
     // Apply grayscale filter if enabled
     if (enableGrayscale) {
