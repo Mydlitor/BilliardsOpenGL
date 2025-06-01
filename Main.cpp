@@ -215,10 +215,8 @@ int main()
             std::cout << "[ANIMATION DEBUG] Status check - Playing: " << bilardModel.IsAnimationPlaying() 
                       << ", FPS: " << (int)(1.0 / deltaTime) << std::endl;
             lastDebugTime = currentTime;
-        }
-
-        // Update animation based on playAnimation state or one-shot animation
-        if (playAnimation)
+        }        // Update animation based on playAnimation state or one-shot animation
+        if (playAnimation || bilardModel.IsAnimationPlaying())
             bilardModel.UpdateAnimation(deltaTime);
         else
             bilardModel.UpdateAnimation(0.0f);
