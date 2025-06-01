@@ -33,26 +33,26 @@ const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 bool grayscaleFilter = false;
 
 GLfloat vertices[] = {
-	// Wierzcho³ki          /  Kolory     /  TexCoord (u, v) //
-	// Przód
+	// Wierzchoï¿½ki          /  Kolory     /  TexCoord (u, v) //
+	// Przï¿½d
 	-0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 0
 	 0.5f, -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 1
 	 0.5f,  0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 2
 	-0.5f,  0.5f,  0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 3
 
-	// Ty³
+	// Tyï¿½
 	-0.5f, -0.5f, -0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 4
 	 0.5f, -0.5f, -0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 5
 	 0.5f,  0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 6
 	-0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 7
 
-	// Góra
+	// Gï¿½ra
 	-0.5f,  0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 8
 	 0.5f,  0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 9
 	 0.5f,  0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 10
 	-0.5f,  0.5f, -0.5f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,   // 11
 
-	// Dó³
+	// Dï¿½
 	-0.5f, -0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   0.0f, 0.0f,   // 12
 	 0.5f, -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 13
 	 0.5f, -0.5f, -0.5f,   0.0f, 0.0f, 1.0f,   1.0f, 1.0f,   // 14
@@ -72,10 +72,10 @@ GLfloat vertices[] = {
 };
 
 GLuint indices[] = {
-	0, 1, 2, 2, 3, 0,		// Przód
-	4, 5, 6, 6, 7, 4,		// Ty³
-	8, 9, 10, 10, 11, 8,	// Góra
-	12, 13, 14, 14, 15, 12,	// Dó³
+	0, 1, 2, 2, 3, 0,		// Przï¿½d
+	4, 5, 6, 6, 7, 4,		// Tyï¿½
+	8, 9, 10, 10, 11, 8,	// Gï¿½ra
+	12, 13, 14, 14, 15, 12,	// Dï¿½
 	16, 17, 18, 18, 19, 16,	// Lewa
 	20, 21, 22, 22, 23, 20	// Prawa
 };
@@ -163,12 +163,12 @@ int main()
 
         shaderProgram.Activate();
 
-        camera.Inputs(window);
-        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
-
         double currentTime = glfwGetTime();
         float deltaTime = static_cast<float>(currentTime - prevTime);
         prevTime = currentTime;
+
+        camera.Inputs(window, deltaTime);
+        camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
 
 		//turn on/off grayscale filter for both shaders
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
@@ -183,12 +183,10 @@ int main()
             playAnimation = false;
         }
 
-
         if (playAnimation)
             bilardModel.UpdateAnimation(deltaTime);
         else
             bilardModel.UpdateAnimation(0.0f);
-
 
         bilardModel.Draw(shaderProgram);
 
