@@ -48,15 +48,9 @@ Texture::Texture(const unsigned char* data, int dataSize, GLenum texType, GLenum
 	type = texType;
 	int widthImg, heightImg, numColCh;
 	stbi_set_flip_vertically_on_load(true);
-	unsigned char* bytes = stbi_load_from_memory(data, dataSize, &widthImg, &heightImg, &numColCh, 4);
+	unsigned char* bytes = stbi_load_from_memory(data, dataSize, &widthImg, &heightImg, &numColCh, 0);
 
 	std::cout << "[Texture DIAG] Rozmiar bufora: " << dataSize << std::endl;
-	if (dataSize > 16) {
-		std::cout << "[Texture DIAG] Nag³ówek bajtów: ";
-		for (int i = 0; i < 8; ++i) std::cout << std::hex << (int)data[i] << " ";
-		std::cout << std::dec << std::endl;
-	}
-
 	if (!bytes) {
 		std::cerr << "[Texture DIAG] Nie uda³o siê za³adowaæ tekstury z pamiêci!" << std::endl;
 	} else {

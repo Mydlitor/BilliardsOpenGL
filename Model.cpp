@@ -1,12 +1,15 @@
 #include "Model.h"
 #include <iostream>
 #include <filesystem>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace fs = std::filesystem;
 
 Model::Model(const std::string& filePath) {
     currentAnimation = -1;
     animationTime = 0.0f;
+    animationPlaying = false;
+    oneShotMode = false;
     path = filePath;
     LoadModel(path);
 }
@@ -202,15 +205,14 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                 );
             }
         }
-        
-        for (int i = 0; i < vertCount; i++) {
+          for (int i = 0; i < vertCount; i++) {
             vertexData.push_back(positions[i].x);
             vertexData.push_back(positions[i].y);
             vertexData.push_back(positions[i].z);
             
-            vertexData.push_back(colors[i].r);
-            vertexData.push_back(colors[i].g);
-            vertexData.push_back(colors[i].b);
+            vertexData.push_back(normals[i].x);
+            vertexData.push_back(normals[i].y);
+            vertexData.push_back(normals[i].z);
             
             vertexData.push_back(texCoords[i].s);
             vertexData.push_back(texCoords[i].t);
@@ -247,29 +249,45 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                 }
             }
         }
-        
-        if (primitive.material >= 0) {
+          if (primitive.material >= 0) {
             auto& material = model.materials[primitive.material];
-            
+            bool hasTexture = false;
+
+            std::cout << "[Model DIAG] Przetwarzam materiał: " << material.name << std::endl;
+
             if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) {
                 int texIndex = material.pbrMetallicRoughness.baseColorTexture.index;
                 int imgIndex = model.textures[texIndex].source;
                 
+                std::cout << "[Model DIAG] Indeks tekstury: " << texIndex << ", indeks obrazu: " << imgIndex << std::endl;
+                
                 if (imgIndex >= 0) {
                     auto& gltfImg = model.images[imgIndex];
                     
+                    std::cout << "[Model DIAG] Obraz - URI: '" << gltfImg.uri << "', rozmiar bufora: " << gltfImg.image.size() << std::endl;
+                    std::cout << "[Model DIAG] Wymiary: " << gltfImg.width << "x" << gltfImg.height << ", komponenty: " << gltfImg.component << std::endl;
+                    
                     std::string texPath;
                     if (!gltfImg.uri.empty()) {
-                        // �aduj z pliku (obecny kod)
+                        // Ładuj z pliku (obecny kod)
                         std::string modelPath = fs::path(path).parent_path().string();
                         texPath = modelPath + "/" + gltfImg.uri;
+                        std::cout << "[Model DIAG] Próba załadowania tekstury z pliku: " << texPath << std::endl;
                         Texture tex(texPath.c_str(), GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-                        mesh.textures.push_back(tex);
-                    } else if (!gltfImg.image.empty()) {
-                        // �aduj z surowych danych (raw RGBA8)
+                        if (tex.ID != 0) {
+                            mesh.textures.push_back(tex);
+                            hasTexture = true;
+                            std::cout << "[Model DIAG] Tekstura załadowana z pliku, ID: " << tex.ID << std::endl;
+                        } else {
+                            std::cout << "[Model DIAG] Błąd ładowania tekstury z pliku!" << std::endl;
+                        }                    } else if (!gltfImg.image.empty()) {
+                        // Ładuj z surowych danych (raw RGBA8)
                         int width = gltfImg.width;
                         int height = gltfImg.height;
                         int channels = gltfImg.component; // zwykle 4 (RGBA)
+                        std::cout << "[Model DIAG] Ładowanie tekstury z pamięci: " << width << "x" << height << " kanały: " << channels << std::endl;
+                        std::cout << "[Model DIAG] Rozmiar bufora: " << gltfImg.image.size() << std::endl;
+
                         GLuint texID;
                         glGenTextures(1, &texID);
                         glActiveTexture(GL_TEXTURE0);
@@ -278,17 +296,40 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, gltfImg.image.data());
+
+                        GLenum format = (channels == 4) ? GL_RGBA : (channels == 3) ? GL_RGB : GL_RED;
+                        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, gltfImg.image.data());
                         glGenerateMipmap(GL_TEXTURE_2D);
                         glBindTexture(GL_TEXTURE_2D, 0);
 
-                        // Stw�rz obiekt Texture tylko z ID (je�li chcesz zachowa� sp�jno�� interfejsu)
-                        Texture tex;
-                        tex.ID = texID;
-                        tex.type = GL_TEXTURE_2D;
-                        mesh.textures.push_back(tex);
+                        // Sprawdź błędy OpenGL
+                        GLenum err = glGetError();
+                        if (err != GL_NO_ERROR) {
+                            std::cout << "[Model DIAG] Błąd OpenGL podczas ładowania tekstury: " << err << std::endl;
+                        } else {
+                            // Stwórz obiekt Texture tylko z ID (jeśli chcesz zachować spójność interfejsu)
+                            Texture tex;
+                            tex.ID = texID;
+                            tex.type = GL_TEXTURE_2D;
+                            mesh.textures.push_back(tex);
+                            hasTexture = true;
+                            std::cout << "[Model DIAG] Tekstura załadowana z pamięci, ID: " << texID << std::endl;
+                        }
                     }
                 }
+            }                if (!hasTexture) {
+                std::cout << "[Model DIAG] Brak tekstury, używam baseColor" << std::endl;
+                glm::vec4 baseColor(1.0f);
+                if (!material.pbrMetallicRoughness.baseColorFactor.empty()) {
+                    baseColor = glm::vec4(
+                        material.pbrMetallicRoughness.baseColorFactor[0],
+                        material.pbrMetallicRoughness.baseColorFactor[1],
+                        material.pbrMetallicRoughness.baseColorFactor[2],
+                        material.pbrMetallicRoughness.baseColorFactor[3]
+                    );
+                    std::cout << "[Model DIAG] BaseColor: " << baseColor.r << ", " << baseColor.g << ", " << baseColor.b << ", " << baseColor.a << std::endl;
+                }
+                mesh.baseColor = baseColor;
             }
         }
     }
@@ -304,8 +345,7 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
         mesh.ebo = EBO(reinterpret_cast<GLuint*>(indices.data()), 
                        static_cast<GLsizeiptr>(indices.size() * sizeof(unsigned int)));
     }
-    
-    mesh.vao.LinkAttrib(mesh.vbo, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
+      mesh.vao.LinkAttrib(mesh.vbo, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
     mesh.vao.LinkAttrib(mesh.vbo, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     mesh.vao.LinkAttrib(mesh.vbo, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     
@@ -397,13 +437,22 @@ void Model::Draw(Shader& shader) {
             auto& mesh = meshes[nodes[i].meshIndex];
             
             glUniformMatrix4fv(
-                glGetUniformLocation(shader.ID, "modelMatrix"), 
-                1, GL_FALSE, 
+                glGetUniformLocation(shader.ID, "modelMatrix"),
+                1, GL_FALSE,
                 glm::value_ptr(nodes[i].globalTransform)
             );
-            
-            if (!mesh.textures.empty()) {
+              if (!mesh.textures.empty()) {
+                // Binduj teksturę na GL_TEXTURE0 przed rysowaniem
+                glActiveTexture(GL_TEXTURE0);
                 mesh.textures[0].Bind();
+                // Ustaw uniform w shaderze na 0 (GL_TEXTURE0)
+                glUniform1i(glGetUniformLocation(shader.ID, "texture_diffuse1"), 0);
+                glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 1);
+                std::cout << "[Draw DIAG] Używam tekstury ID: " << mesh.textures[0].ID << std::endl;
+            } else {
+                glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 0);
+                glUniform4fv(glGetUniformLocation(shader.ID, "baseColor"), 1, glm::value_ptr(mesh.baseColor));
+                std::cout << "[Draw DIAG] Używam baseColor: " << mesh.baseColor.r << ", " << mesh.baseColor.g << ", " << mesh.baseColor.b << std::endl;
             }
             
             mesh.vao.Bind();
@@ -416,6 +465,10 @@ void Model::Draw(Shader& shader) {
             }
             
             mesh.vao.Unbind();
+            // Unbind tekstury po rysowaniu (opcjonalnie)
+            if (!mesh.textures.empty()) {
+                mesh.textures[0].Unbind();
+            }
         }
     }
 }
@@ -425,11 +478,26 @@ void Model::UpdateAnimation(float deltaTime) {
         return;
     }
     
+    if (!animationPlaying) {
+        return; // Animacja nie jest aktywna
+    }
+    
     auto& animation = animations[currentAnimation];
     
     animationTime += deltaTime;
-    if (animationTime > animation.duration) {
-        animationTime = fmodf(animationTime, animation.duration);
+    
+    if (oneShotMode) {
+        // W trybie jednorazowym - zatrzymaj animację na końcu
+        if (animationTime >= animation.duration) {
+            animationTime = animation.duration;
+            animationPlaying = false; // Zatrzymaj animację
+            std::cout << "[Animation] Animacja zakończona - czekam na ostatniej klatce" << std::endl;
+        }
+    } else {
+        // W trybie normalnym - zapętlaj animację
+        if (animationTime > animation.duration) {
+            animationTime = fmodf(animationTime, animation.duration);
+        }
     }
     
     for (auto& channel : animation.channels) {
