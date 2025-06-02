@@ -23,6 +23,7 @@ const unsigned int height = 1080;
 
 const int ANIMATION_KEY = GLFW_KEY_T;
 const int FILTER_KEY = GLFW_KEY_F;
+const int RAINBOW_LIGHT_KEY = GLFW_KEY_R;
 const int EXIT_KEY = GLFW_KEY_ESCAPE;
 
 const glm::vec3 CAMERA_START_POSITION(-3.0f, 2.5f, -1.5f);	// Starting position of the camera
@@ -31,6 +32,7 @@ const glm::vec3 MAX_BOUNDS(3.0f, 3.0f, 3.0f);				// Maximum XYZ boundaries
 const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 
 bool grayscaleFilter = false;
+bool rainbowLightFilter = false;
 
 GLfloat vertices[] = {
 	// Wierzcho�ki          /  Kolory     /  TexCoord (u, v) //
@@ -86,6 +88,10 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	{
 		grayscaleFilter = !grayscaleFilter;
 	}
+    if (key == RAINBOW_LIGHT_KEY && action == GLFW_PRESS)
+    {
+        rainbowLightFilter = !rainbowLightFilter;
+    }
 	if (key == EXIT_KEY && action == GLFW_PRESS)
 	{
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -163,6 +169,11 @@ int main()
 	};
 
 	Skybox skybox(skyboxFaces);
+
+    glm::vec3 baseColor(0.2, 0.8, 0.2);
+    glm::vec3 lightPos(0.0, 6.0, 0.0);
+    glm::vec3 lightColor(1.0, 1.0, 1.0);
+
 	while (!glfwWindowShouldClose(window))
 	{
         // 60 FPS frame rate limiting
@@ -187,6 +198,15 @@ int main()
         float deltaTime = static_cast<float>(currentTime - prevTime);
         prevTime = currentTime;        camera.Inputs(window, deltaTime);
         camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
+
+
+        // Lighting settings
+        glUniform3f(glGetUniformLocation(shaderProgram.ID, "camPos"), camera.Position.x, camera.Position.y, camera.Position.z);
+        glUniform3f(glGetUniformLocation(shaderProgram.ID, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
+        glUniform3f(glGetUniformLocation(shaderProgram.ID, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
+        glUniform1f(glGetUniformLocation(shaderProgram.ID, "time"), currentTime);
+        glUniform1i(glGetUniformLocation(shaderProgram.ID, "enableRainbowLight"), rainbowLightFilter ? 1 : 0);
+
 
 		//turn on/off grayscale filter for both shaders
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
