@@ -34,6 +34,9 @@ const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 bool grayscaleFilter = false;
 bool rainbowLightFilter = false;
 
+//global pointer so we can access the model from the key callback
+Model* g_bilardModel = nullptr;
+
 GLfloat vertices[] = {
 	// Wierzcho�ki          /  Kolory     /  TexCoord (u, v) //
 	// Prz�d
@@ -96,6 +99,13 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	{
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	}
+	if (key == ANIMATION_KEY && action == GLFW_PRESS)
+	{
+		if (g_bilardModel != nullptr)
+		{
+			g_bilardModel->TriggerOneShotAnimation();
+		}
+	}
 }
 
 
@@ -122,8 +132,6 @@ int main()
     gladLoadGL();
     glViewport(0, 0, width, height);
 
-	glfwSetKeyCallback(window, keyCallback);
-
     Shader shaderProgram("default.vert", "default.frag");
     
     glEnable(GL_DEPTH_TEST);
@@ -140,6 +148,7 @@ int main()
     std::string parentDir = fs::current_path().string();
     std::string modelPath = parentDir + "/models/bilard.glb";
     Model bilardModel(modelPath);    // Wczytanie modelu lampy z transformacją (pozycja nad stolem)
+	g_bilardModel = &bilardModel; 
     std::string lampPath = parentDir + "/models/lamp.glb";
     glm::mat4 lampTransform = glm::mat4(1.0f);
     lampTransform = glm::translate(lampTransform, glm::vec3(0.0f, 6.0f, 0.0f)); // Pozycja nad stolem bilardowym
@@ -148,7 +157,6 @@ int main()
     lampModel.SetDoubleSided(true); // Wyłączenie face culling dla lepszej widoczności od wewnątrz
 
     bool playAnimation = false;
-    bool tKeyPressed = false;
 
     // 60 FPS limiting
     double prevTime = glfwGetTime();
@@ -173,6 +181,8 @@ int main()
     glm::vec3 baseColor(0.2, 0.8, 0.2);
     glm::vec3 lightPos(0.0, 6.0, 0.0);
     glm::vec3 lightColor(1.0, 1.0, 1.0);
+
+    glfwSetKeyCallback(window, keyCallback);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -212,25 +222,10 @@ int main()
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);
 		shaderProgram.SetGrayscale(grayscaleFilter);
 
-        // T key for one-shot animation
-        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS && !tKeyPressed) {
-            std::cout << "[ANIMATION DEBUG] T key pressed - triggering one-shot animation" << std::endl;
-            std::cout << "[ANIMATION DEBUG] Previous state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
-            bilardModel.TriggerOneShotAnimation();
-            std::cout << "[ANIMATION DEBUG] New state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
-            tKeyPressed = true;
-        }
-        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_RELEASE) {
-            tKeyPressed = false;
-        }
-
 
         static double lastDebugTime = 0.0;
-        if (currentTime - lastDebugTime >= 1.0) {
-            std::cout << "[ANIMATION DEBUG] Status check - Playing: " << bilardModel.IsAnimationPlaying() 
-                      << ", FPS: " << (int)(1.0 / deltaTime) << std::endl;
-            lastDebugTime = currentTime;
-        }        // Update animation based on playAnimation state or one-shot animation
+        if (currentTime - lastDebugTime >= 1.0)
+            lastDebugTime = currentTime; // Update animation based on playAnimation state or one-shot animation
         if (playAnimation || bilardModel.IsAnimationPlaying())
             bilardModel.UpdateAnimation(deltaTime);
         else
