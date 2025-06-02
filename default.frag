@@ -18,15 +18,22 @@ const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 void main()
 {
     vec3 color = hasTexture == 1 ? texture(texture_diffuse1, TexCoord).rgb : baseColor.rgb;
-    float diff = max(dot(normalize(Normal), -lightDir), 0.0);
+    
+    // Improved lighting with ambient component
+    vec3 normal = normalize(Normal);
+    float diff = max(dot(normal, -lightDir), 0.0);
+    
+    // Add ambient light to prevent complete darkness
+    vec3 ambient = 0.3 * lightColor * color;
     vec3 diffuse = diff * lightColor * color;
+    vec3 finalColor = ambient + diffuse;
     
     // Apply grayscale filter if enabled
     if (enableGrayscale) {
         // Standard grayscale conversion using luminance weights
-        float gray = dot(diffuse, vec3(0.299, 0.587, 0.114));
-        diffuse = vec3(gray);
+        float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
+        finalColor = vec3(gray);
     }
     
-    FragColor = vec4(diffuse, 1.0);
+    FragColor = vec4(finalColor, 1.0);
 }

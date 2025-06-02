@@ -130,12 +130,16 @@ int main()
     Camera camera(width, height, CAMERA_START_POSITION);
 
 	camera.SetBounds(MIN_BOUNDS, MAX_BOUNDS);
-	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f), DIST_FROM_TABLE, 1.0f); 
-
-    // Wczytanie modelu
+	camera.SetTableCollision(glm::vec3(0.0f, 0.0f, 0.0f), DIST_FROM_TABLE, 1.0f);     // Wczytanie modelu
     std::string parentDir = fs::current_path().string();
     std::string modelPath = parentDir + "/models/bilard.glb";
-    Model bilardModel(modelPath);
+    Model bilardModel(modelPath);    // Wczytanie modelu lampy z transformacją (pozycja nad stolem)
+    std::string lampPath = parentDir + "/models/lamp.glb";
+    glm::mat4 lampTransform = glm::mat4(1.0f);
+    lampTransform = glm::translate(lampTransform, glm::vec3(0.0f, 6.0f, 0.0f)); // Pozycja nad stolem bilardowym
+    lampTransform = glm::scale(lampTransform, glm::vec3(0.6f, 0.6f, 0.6f)); // Zmniejszenie rozmiaru lampy
+    Model lampModel(lampPath, lampTransform);
+    lampModel.SetDoubleSided(true); // Wyłączenie face culling dla lepszej widoczności od wewnątrz
 
     bool playAnimation = false;
     bool tKeyPressed = false;
@@ -222,6 +226,7 @@ int main()
             bilardModel.UpdateAnimation(0.0f);
 
         bilardModel.Draw(shaderProgram);
+        lampModel.Draw(shaderProgram);
 
 		skybox.Draw(camera, width, height);
 

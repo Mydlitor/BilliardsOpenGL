@@ -11,6 +11,16 @@ Model::Model(const std::string& filePath) {
     animationPlaying = false;
     oneShotMode = false;
     path = filePath;
+    modelTransform = glm::mat4(1.0f);
+    LoadModel(path);
+}
+
+Model::Model(const std::string& filePath, const glm::mat4& transform) {
+    animationTime = 0.0f;
+    animationPlaying = false;
+    oneShotMode = false;
+    path = filePath;
+    modelTransform = transform;
     LoadModel(path);
 }
 
@@ -246,10 +256,11 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                 for (int i = 0; i < idxCount; i++) {
                     indices.push_back(static_cast<unsigned int>(idxData[i]));
                 }
-            }
-        }        if (primitive.material >= 0) {
+            }        }        if (primitive.material >= 0) {
             auto& material = model.materials[primitive.material];
             bool hasTexture = false;
+            
+            std::cout << "[TEXTURE DEBUG] Processing material for mesh, material index: " << primitive.material << std::endl;
 
             if (material.pbrMetallicRoughness.baseColorTexture.index >= 0) {
                 int texIndex = material.pbrMetallicRoughness.baseColorTexture.index;
@@ -294,8 +305,7 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                     }
                 }
             }
-            
-            if (!hasTexture) {
+              if (!hasTexture) {
                 glm::vec4 baseColor(1.0f);
                 if (!material.pbrMetallicRoughness.baseColorFactor.empty()) {
                     baseColor = glm::vec4(
@@ -304,9 +314,16 @@ void Model::ProcessMesh(tinygltf::Model& model, int meshIndex) {
                         material.pbrMetallicRoughness.baseColorFactor[2],
                         material.pbrMetallicRoughness.baseColorFactor[3]
                     );
+                    std::cout << "[TEXTURE DEBUG] Using baseColorFactor: " << baseColor.r << ", " << baseColor.g << ", " << baseColor.b << ", " << baseColor.a << std::endl;
+                } else {
+                    std::cout << "[TEXTURE DEBUG] No baseColorFactor found, using default white (1,1,1,1)" << std::endl;
                 }
                 mesh.baseColor = baseColor;
             }
+        } else {
+            // Nie ma materiału - ustaw domyślny jasny kolor
+            std::cout << "[TEXTURE DEBUG] No material found for primitive, using default light gray color" << std::endl;
+            mesh.baseColor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
         }
     }
     
@@ -427,9 +444,17 @@ void Model::ProcessAnimations(tinygltf::Model& model) {
 }
 
 void Model::Draw(Shader& shader) {
+    // Kontrola face culling
+    if (doubleSided) {
+        glDisable(GL_CULL_FACE);
+    } else {
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+    }
+    
     for (int i = 0; i < nodes.size(); i++) {
         if (nodes[i].parent == -1) {
-            UpdateNodeHierarchy(i, glm::mat4(1.0f));
+            UpdateNodeHierarchy(i, modelTransform); // Zastosowanie transformacji modelu
         }
     }
     
@@ -446,9 +471,11 @@ void Model::Draw(Shader& shader) {
                 mesh.textures[0].Bind();
                 glUniform1i(glGetUniformLocation(shader.ID, "texture_diffuse1"), 0);
                 glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 1);
+                std::cout << "[DRAW DEBUG] Using texture for mesh" << std::endl;
             } else {
                 glUniform1i(glGetUniformLocation(shader.ID, "hasTexture"), 0);
                 glUniform4fv(glGetUniformLocation(shader.ID, "baseColor"), 1, glm::value_ptr(mesh.baseColor));
+                std::cout << "[DRAW DEBUG] Using baseColor: " << mesh.baseColor.r << ", " << mesh.baseColor.g << ", " << mesh.baseColor.b << ", " << mesh.baseColor.a << std::endl;
             }
             
             mesh.vao.Bind();
@@ -614,4 +641,8 @@ void Model::TriggerOneShotAnimation() {
 
 bool Model::IsAnimationPlaying() const {
     return animationPlaying;
+}
+
+void Model::SetDoubleSided(bool doubleSided) {
+    this->doubleSided = doubleSided;
 }
