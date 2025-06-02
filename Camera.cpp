@@ -115,6 +115,7 @@ void Camera::Inputs(GLFWwindow* window, float deltaTime)
         // Makes sure the next time the camera looks around it doesn't jump
         firstClick = true;
     }
+	std::cout << "Camera Position: " << Position.x << ", " << Position.y << ", " << Position.z << std::endl;
 }
 
 void Camera::ClampPosition()

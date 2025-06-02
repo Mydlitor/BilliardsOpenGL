@@ -110,6 +110,7 @@
     <None Include="default.vert" />
     <None Include="skybox.vert" />
     <None Include="skybox.frag" />
+    <None Include="models\bilard.glb" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\woodTex.png">

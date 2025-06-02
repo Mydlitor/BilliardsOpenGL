@@ -14,6 +14,7 @@
 #include "EBO.h"
 #include "Texture.h"
 #include "shaderClass.h"
+#include <GLM/fwd.hpp>
 
 struct Mesh {
     VAO vao;

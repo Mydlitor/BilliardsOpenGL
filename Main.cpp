@@ -21,11 +21,11 @@ namespace fs = std::filesystem;
 const unsigned int width = 1920;
 const unsigned int height = 1080;
 
-const int ANIMATION_KEY = GLFW_KEY_H;
+const int ANIMATION_KEY = GLFW_KEY_T;
 const int FILTER_KEY = GLFW_KEY_F;
 const int EXIT_KEY = GLFW_KEY_ESCAPE;
 
-const glm::vec3 CAMERA_START_POSITION(0.0f, 2.0f, 5.0f);	// Starting position of the camera
+const glm::vec3 CAMERA_START_POSITION(-3.0f, 2.5f, -1.5f);	// Starting position of the camera
 const glm::vec3 MIN_BOUNDS(-3.0f, 2.5f, -3.0f);			// Minimum XYZ boundaries
 const glm::vec3 MAX_BOUNDS(3.0f, 3.0f, 3.0f);				// Maximum XYZ boundaries
 const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
@@ -193,26 +193,17 @@ int main()
 		shaderProgram.SetGrayscale(grayscaleFilter);
 
         // T key for one-shot animation
-        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS && !tKeyPressed) {
+        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS && !tKeyPressed) {
             std::cout << "[ANIMATION DEBUG] T key pressed - triggering one-shot animation" << std::endl;
             std::cout << "[ANIMATION DEBUG] Previous state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
             bilardModel.TriggerOneShotAnimation();
             std::cout << "[ANIMATION DEBUG] New state - Playing: " << bilardModel.IsAnimationPlaying() << std::endl;
             tKeyPressed = true;
         }
-        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE) {
+        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_RELEASE) {
             tKeyPressed = false;
         }
 
-        // H key for continuous animation
-        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_PRESS)
-        {
-            playAnimation = true;
-        }
-        if (glfwGetKey(window, ANIMATION_KEY) == GLFW_RELEASE)
-        {
-            playAnimation = false;
-        }
 
         static double lastDebugTime = 0.0;
         if (currentTime - lastDebugTime >= 1.0) {

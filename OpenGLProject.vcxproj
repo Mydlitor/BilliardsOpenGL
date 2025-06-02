@@ -172,6 +172,7 @@
   <ItemGroup>
     <None Include="default.frag" />
     <None Include="default.vert" />
+    <None Include="models\bilard.glb" />
     <None Include="skybox.frag" />
     <None Include="skybox.vert" />
   </ItemGroup>
