@@ -26,8 +26,8 @@ const int FILTER_KEY = GLFW_KEY_F;
 const int RAINBOW_LIGHT_KEY = GLFW_KEY_R;
 const int EXIT_KEY = GLFW_KEY_ESCAPE;
 
-const glm::vec3 CAMERA_START_POSITION(-3.0f, 2.5f, -1.5f);	// Starting position of the camera
-const glm::vec3 MIN_BOUNDS(-3.0f, 2.5f, -3.0f);			// Minimum XYZ boundaries
+const glm::vec3 CAMERA_START_POSITION(-3.0f, 2.0f, -1.5f);	// Starting position of the camera
+const glm::vec3 MIN_BOUNDS(-3.0f, 2.0f, -3.0f);			// Minimum XYZ boundaries
 const glm::vec3 MAX_BOUNDS(3.0f, 3.0f, 3.0f);				// Maximum XYZ boundaries
 const float DIST_FROM_TABLE = 2.0f;							// Distance from the table center
 
@@ -217,6 +217,7 @@ int main()
         glUniform1f(glGetUniformLocation(shaderProgram.ID, "time"), currentTime);
         glUniform1i(glGetUniformLocation(shaderProgram.ID, "enableRainbowLight"), rainbowLightFilter ? 1 : 0);
 
+		skybox.skyboxShader->SetRainbowLight(rainbowLightFilter, currentTime);
 
 		//turn on/off grayscale filter for both shaders
 		skybox.skyboxShader->SetGrayscale(grayscaleFilter);

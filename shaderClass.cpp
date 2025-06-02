@@ -56,3 +56,10 @@ void Shader::SetGrayscale(bool enable)
 	Activate();
 	glUniform1i(glGetUniformLocation(ID, "enableGrayscale"), enable ? 1 : 0);
 }
+
+void Shader::SetRainbowLight(bool enable, float time)
+{
+	Activate();
+	glUniform1i(glGetUniformLocation(ID, "enableRainbowLight"), enable ? 1 : 0);
+	glUniform1f(glGetUniformLocation(ID, "time"), time);
+}

@@ -21,7 +21,10 @@ public:
 
 	// Add grayscale functionality
 	void SetGrayscale(bool enable);
-	
+
+	// Add rainbow light functionality
+	void SetRainbowLight(bool enable, float time);
+
 	void setInt(const std::string& name, int value) const
 	{
 		glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
