@@ -52,10 +52,12 @@ struct Node {
 class Model {
 public:
     Model(const std::string& path);
+    Model(const std::string& path, const glm::mat4& transform);
     ~Model();    void Draw(Shader& shader);
     void UpdateAnimation(float time);
     void TriggerOneShotAnimation();
     bool IsAnimationPlaying() const;
+    void SetDoubleSided(bool doubleSided); // Nowa metoda do kontrolowania face culling
 
 private:
     std::string path;
@@ -63,9 +65,10 @@ private:
     std::vector<Node> nodes;    std::vector<Animation> animations;
     std::vector<bool> activeAnimations;
     float animationTime;
-    bool animationPlaying;
-    bool oneShotMode;
+    bool animationPlaying;    bool oneShotMode;
     glm::vec4 baseColor = glm::vec4(1.0f);
+    glm::mat4 modelTransform = glm::mat4(1.0f); // Dodana transformacja modelu
+    bool doubleSided = false; // Flaga kontrolująca face culling
     void LoadModel(const std::string& path);
     void ProcessNode(tinygltf::Model& model, int nodeIndex, int parentIndex);
     void ProcessMesh(tinygltf::Model& model, int meshIndex);
