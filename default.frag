@@ -6,34 +6,54 @@ in vec2 TexCoord;
 
 out vec4 FragColor;
 
-// Grayscale filter uniform
 uniform bool enableGrayscale;
+uniform bool enableRainbowLight; // <-- NOWE
+uniform float time;              // <-- NOWE
+
+uniform vec3 camPos;
+uniform vec4 baseColor;
+uniform vec3 lightPos;
+uniform vec3 lightColor;
+
 uniform sampler2D texture_diffuse1;
 uniform int hasTexture;
-uniform vec4 baseColor;
-
-const vec3 lightDir = normalize(vec3(-0.5, -1.0, -0.3));
-const vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
 void main()
 {
     vec3 color = hasTexture == 1 ? texture(texture_diffuse1, TexCoord).rgb : baseColor.rgb;
-    
-    // Improved lighting with ambient component
+
+    // AMBIENT
+    float ambient = 0.2f;
+
+    // DIFFUSE
     vec3 normal = normalize(Normal);
-    float diff = max(dot(normal, -lightDir), 0.0);
-    
-    // Add ambient light to prevent complete darkness
-    vec3 ambient = 0.3 * lightColor * color;
-    vec3 diffuse = diff * lightColor * color;
-    vec3 finalColor = ambient + diffuse;
-    
-    // Apply grayscale filter if enabled
-    if (enableGrayscale) {
-        // Standard grayscale conversion using luminance weights
-        float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
-        finalColor = vec3(gray);
+    vec3 lightDirection = normalize(lightPos - FragPos);
+    float diffuse = max(dot(normal, lightDirection), 0.0f);
+
+    // SPECULAR
+    float specularStrength = 1.0f;
+    vec3 viewDirection = normalize(camPos - FragPos);
+    vec3 reflectionDirection = reflect(-lightDirection, normal);
+    float spec = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 8);
+    float specular = spec * specularStrength;
+
+    // RAINBOW LIGHT COLOR
+    vec3 finalLightColor = lightColor;
+    if (enableRainbowLight && !enableGrayscale) {
+        finalLightColor = vec3(
+            sin(time * 1.0) * 0.4 + 0.5,
+            sin(time * 1.0 + 2.094) * 0.4 + 0.5,
+            sin(time * 1.0 + 4.188) * 0.4 + 0.5
+        );
     }
-    
-    FragColor = vec4(finalColor, 1.0);
+
+    float lighting = ambient + diffuse + specular;
+    vec3 result = color * finalLightColor * lighting;
+
+    if (enableGrayscale) {
+        float gray = dot(result, vec3(0.299, 0.587, 0.114));
+        result = vec3(gray);
+    }
+
+    FragColor = vec4(result, 1.0);
 }
